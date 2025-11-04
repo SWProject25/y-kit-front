@@ -1,37 +1,32 @@
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import reactLogo from "./assets/react.svg"
-import viteLogo from "/vite.svg"
 import "./App.css"
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import MainPage from './pages/MainPage'
+import PolicyListPage from './pages/PolicyListPage'
+import PolicyDetailsPage from './pages/PolicyDetailsPage'
+import AffordableMapPage from './pages/AffordableMapPage'
+import GroupPurchasePage from './pages/GroupPurchasePage'
+import GroupPurchaseDetailsPage from './pages/GroupPurchaseDetailsPage'
+import CommunityPage from './pages/CommunityPage'
+import CommunityDetailsPage from './pages/CommunityDetailsPage'
+import HotDealsPage from './pages/HotDealsPage'
+import HotDealDetailsPage from './pages/HotDealDetailsPage'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6 p-4">
-      {/* 로고 */}
-      <div className="flex gap-6">
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-
-      <h1 className="text-3xl font-bold">Vite + React + shadcn UI</h1>
-
-      <div className="flex flex-col items-center gap-4">
-        <Button onClick={() => setCount((c) => c + 1)}>
-          count is {count}
-        </Button>
-        <p>Edit <code>src/App.tsx</code> and save to test HMR</p>
-      </div>
-
-      <p className="text-sm text-gray-500">
-        Click on the Vite and React logos to learn more
-      </p>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route path="/policies" element={<PolicyListPage />} />
+        <Route path="/policies/:id" element={<PolicyDetailsPage />} />
+        <Route path="/map" element={<AffordableMapPage />} />
+        <Route path="/group-purchase" element={<GroupPurchasePage />} />
+        <Route path="/group-purchase/:id" element={<GroupPurchaseDetailsPage />} />
+        <Route path="/community" element={<CommunityPage />} />
+        <Route path="/community/:id" element={<CommunityDetailsPage />} />
+        <Route path="/hot-deals" element={<HotDealsPage />} />
+        <Route path="/hot-deals/:id" element={<HotDealDetailsPage />} />
+      </Routes>
+    </Router>
   )
 }
 
