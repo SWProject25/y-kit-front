@@ -291,8 +291,8 @@ function AffordableMapPage() {
 
           {/* 선택된 장소 상세 정보 모달 */}
           {selectedPlace && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4">
-              <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto bg-white shadow-2xl rounded-lg">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -312,6 +312,7 @@ function AffordableMapPage() {
                     </Button>
                   </div>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>

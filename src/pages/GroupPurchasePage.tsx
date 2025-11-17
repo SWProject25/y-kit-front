@@ -177,35 +177,35 @@ function GroupPurchasePage() {
               </div>
               <div className="flex gap-2 overflow-x-auto justify-center">
                 <Select>
-                    <SelectTrigger className="w-[120px] bg-white">
-                    <SelectValue placeholder="시/도" />
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="시/도" />
                     </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="seoul">서울시</SelectItem>
-                    <SelectItem value="busan">부산시</SelectItem>
-                    <SelectItem value="incheon">인천시</SelectItem>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="seoul">서울시</SelectItem>
+                      <SelectItem value="busan">부산시</SelectItem>
+                      <SelectItem value="incheon">인천시</SelectItem>
                     </SelectContent>
                 </Select>
 
                 <Select>
-                    <SelectTrigger className="w-[120px] bg-white">
-                    <SelectValue placeholder="시/군/구" />
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="시/군/구" />
                     </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="gangnam">강남구</SelectItem>
-                    <SelectItem value="songpa">송파구</SelectItem>
-                    <SelectItem value="mapo">마포구</SelectItem>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="gangnam">강남구</SelectItem>
+                      <SelectItem value="songpa">송파구</SelectItem>
+                      <SelectItem value="mapo">마포구</SelectItem>
                     </SelectContent>
                 </Select>
 
                 <Select>
-                    <SelectTrigger className="w-[120px] bg-white">
-                    <SelectValue placeholder="읍/면/동" />
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="읍/면/동" />
                     </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="yeoksam">역삼동</SelectItem>
-                    <SelectItem value="sangam">상암동</SelectItem>
-                    <SelectItem value="jamsil">잠실동</SelectItem>
+                    <SelectContent className="bg-white">
+                      <SelectItem value="yeoksam">역삼동</SelectItem>
+                      <SelectItem value="sangam">상암동</SelectItem>
+                      <SelectItem value="jamsil">잠실동</SelectItem>
                     </SelectContent>
                 </Select>
                 </div>

@@ -1,38 +1,27 @@
 import React from "react"
 import { Menu, X, User } from "lucide-react"
+import logo from "@/assets/logo.png" 
 
 export function Header() {
   const [open, setOpen] = React.useState(false)
 
   return (
     <>
-      <header className="w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 py-1.5">
+      <header className="w-full border-b bg-white/80 backdrop-blur sticky top-0 z-30 h-16 flex items-center">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full">
           {/* 로고 */}
-          <a href="/" className="text-xl font-bold text-gray-800">
-            Y-Kit
+          <a href="/" className="flex items-center">
+            <img src={logo} alt="Y-Kit 로고" className="h-25 w-auto" /> {/* 헤더 높이에 맞게 조정 */}
           </a>
 
           {/* 데스크탑 네비게이션 */}
           <nav className="hidden md:flex items-center gap-8">
-            <a href="/policies" className="text-gray-700 hover:text-gray-900 transition-colors">
-              청년정책
-            </a>
-            <a href="/map" className="text-gray-700 hover:text-gray-900 transition-colors">
-              알뜰지도
-            </a>
-            <a href="/group-purchase" className="text-gray-700 hover:text-gray-900 transition-colors">
-              공동구매
-            </a>
-            <a href="/hot-deals" className="text-gray-700 hover:text-gray-900 transition-colors">
-              동네핫딜
-            </a>
-            <a href="/community" className="text-gray-700 hover:text-gray-900 transition-colors">
-              커뮤니티
-            </a>
-            <a href="#" className="text-gray-700 hover:text-gray-900 transition-colors">
-              로그인
-            </a>
+            <a href="/policies" className="text-gray-700 hover:text-gray-900 transition-colors">청년정책</a>
+            <a href="/map" className="text-gray-700 hover:text-gray-900 transition-colors">알뜰지도</a>
+            <a href="/group-purchase" className="text-gray-700 hover:text-gray-900 transition-colors">공동구매</a>
+            <a href="/hot-deals" className="text-gray-700 hover:text-gray-900 transition-colors">동네핫딜</a>
+            <a href="/community" className="text-gray-700 hover:text-gray-900 transition-colors">커뮤니티</a>
+            <a href="/login" className="text-gray-700 hover:text-gray-900 transition-colors">로그인</a>
           </nav>
 
           {/* 모바일 메뉴 버튼 */}
