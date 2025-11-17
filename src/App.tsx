@@ -1,6 +1,7 @@
 import "./App.css"
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import MainPage from './pages/MainPage'
+import LoginPage from "./pages/LoginPage"
 import PolicyListPage from './pages/PolicyListPage'
 import PolicyDetailsPage from './pages/PolicyDetailsPage'
 import AffordableMapPage from './pages/AffordableMapPage'
@@ -16,6 +17,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<MainPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/policies" element={<PolicyListPage />} />
         <Route path="/policies/:id" element={<PolicyDetailsPage />} />
         <Route path="/map" element={<AffordableMapPage />} />

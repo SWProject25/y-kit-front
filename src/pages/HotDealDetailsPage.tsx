@@ -194,10 +194,6 @@ function HotDealDetailsPage() {
                         onChange={e => setComment(e.target.value)}
                         className="mb-2"
                       />
-                      <Button size="sm" className="w-full">
-                        <Send size={16} className="mr-2" />
-                        댓글 작성
-                      </Button>
                     </div>
                   </div>
 

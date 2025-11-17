@@ -248,25 +248,9 @@ function HotDealsPage() {
                 className="hover:shadow-lg transition-shadow cursor-pointer bg-white overflow-hidden"
                 onClick={() => navigate(`/hot-deals/${deal.id}`)}
               >
-                {/* 이미지 영역 */}
-                <div className="h-48 bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center text-6xl relative">
-                  {deal.image}
-                  {deal.isHot && (
-                    <div className="absolute top-3 left-3">
-                      <Badge className="bg-red-500 text-white">
-                        <Flame size={12} className="mr-1" />
-                        HOT
-                      </Badge>
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <Badge className="bg-blue-600 text-white text-lg font-bold">
-                      {deal.discount}%
-                    </Badge>
-                  </div>
-                </div>
-
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-3 flex justify-between items-start">
+                {/* 왼쪽 */}
+                <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="secondary" className="text-xs">{deal.category}</Badge>
                     <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -275,7 +259,13 @@ function HotDealsPage() {
                     </span>
                   </div>
                   <CardTitle className="text-lg">{deal.title}</CardTitle>
-                </CardHeader>
+                </div>
+
+                {/* 오른쪽 퍼센트 뱃지 */}
+                <Badge className="bg-blue-600 text-white text-lg font-bold">
+                  {deal.discount}%
+                </Badge>
+              </CardHeader>
 
                 <CardContent className="space-y-3">
                   <p className="text-sm text-gray-600">{deal.description}</p>
