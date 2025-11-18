@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Progress } from '@/components/ui/progress'
 import { 
@@ -16,138 +15,121 @@ import {
   Clock,
   MapPin
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { groupPurchaseAPI } from '@/api/client'
+import type { GroupPurchaseListResponse, GroupPurchaseStatus } from '@/types/api'
 
-interface GroupBuyItem {
-  id: number
-  title: string
-  description: string
-  author: string
-  authorAvatar: string
-  category: string
-  price: number
-  originalPrice: number
-  currentParticipants: number
-  targetParticipants: number
-  deadline: string
-  location: {
-    city: string
-    district: string
-    subdistrict: string
-  }
-  likes: number
-  comments: number
-  bookmarks: number
-  status: string
+const statusLabels: Record<GroupPurchaseStatus, string> = {
+  'RECRUITING': '모집중',
+  'IN_PROGRESS': '진행중',
+  'COMPLETED': '완료',
+  'CANCELLED': '취소'
 }
-
-const groupBuyItems: GroupBuyItem[] = [
-  {
-    id: 1,
-    title: "제주 감귤 5kg 공동구매",
-    description: "달콤한 제주 감귤을 저렴하게!",
-    author: "김철수",
-    authorAvatar: "👨",
-    category: "식품",
-    price: 15000,
-    originalPrice: 25000,
-    currentParticipants: 8,
-    targetParticipants: 10,
-    deadline: "2025.11.10",
-    location: { city: "서울시", district: "강남구", subdistrict: "역삼동" },
-    likes: 24,
-    comments: 12,
-    bookmarks: 8,
-    status: "모집중"
-  },
-  {
-    id: 2,
-    title: "휴지 30개입",
-    description: "부드러운 롤 휴지",
-    author: "이영희",
-    authorAvatar: "👩",
-    category: "생활용품",
-    price: 79000,
-    originalPrice: 150000,
-    currentParticipants: 15,
-    targetParticipants: 20,
-    deadline: "2025.11.08",
-    location: { city: "서울시", district: "서초구", subdistrict: "삼성동" },
-    likes: 45,
-    comments: 23,
-    bookmarks: 18,
-    status: "모집중"
-  },
-  {
-    id: 3,
-    title: "유기농 쌀 10kg",
-    description: "농가 직송 햅쌀 공구합니다",
-    author: "박민수",
-    authorAvatar: "👨",
-    category: "식품",
-    price: 28000,
-    originalPrice: 40000,
-    currentParticipants: 20,
-    targetParticipants: 20,
-    deadline: "2025.11.05",
-    location: { city: "서울시", district: "송파구", subdistrict: "잠실동" },
-    likes: 67,
-    comments: 34,
-    bookmarks: 29,
-    status: "마감"
-  },
-  {
-    id: 4,
-    title: "프리미엄 캠핑 의자",
-    description: "편안한 접이식 캠핑의자 공구",
-    author: "정수진",
-    authorAvatar: "👩",
-    category: "레저",
-    price: 35000,
-    originalPrice: 55000,
-    currentParticipants: 3,
-    targetParticipants: 15,
-    deadline: "2025.11.15",
-    location: { city: "서울시", district: "마포구", subdistrict: "상암동" },
-    likes: 12,
-    comments: 5,
-    bookmarks: 7,
-    status: "모집중"
-  }
-]
-
-const categories = ["전체", "식품", "전자제품", "생활용품", "레저", "패션"]
 
 function GroupPurchasePage() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("전체")
-  const [sortBy, setSortBy] = useState("latest")
-  const [likedItems, setLikedItems] = useState<number[]>([])
-  const [bookmarkedItems, setBookmarkedItems] = useState<number[]>([])
+  const [items, setItems] = useState<GroupPurchaseListResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
-  const handleLike = (id: number) => {
-    setLikedItems(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    )
+  // 공동구매 목록 불러오기
+  useEffect(() => {
+    fetchItems()
+  }, [currentPage])
+
+  const fetchItems = async () => {
+    setLoading(true)
+    setError(null)
+
+    const { data, error: apiError } = await groupPurchaseAPI.getGroupPurchases({
+      page: currentPage,
+      size: 20
+    })
+
+    if (apiError) {
+      setError(apiError)
+      setLoading(false)
+      return
+    }
+
+    if (data) {
+      setItems(data.content)
+      setTotalPages(data.totalPages)
+    }
+    setLoading(false)
   }
 
-  const handleBookmark = (id: number) => {
-    setBookmarkedItems(prev =>
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    )
+  // 검색
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      fetchItems()
+      return
+    }
+
+    setLoading(true)
+    const { data, error: apiError } = await groupPurchaseAPI.searchGroupPurchases({
+      keyword: searchTerm,
+      page: currentPage,
+      size: 20
+    })
+
+    if (apiError) {
+      setError(apiError)
+      setLoading(false)
+      return
+    }
+
+    if (data) {
+      setItems(data.content)
+      setTotalPages(data.totalPages)
+    }
+    setLoading(false)
   }
 
-  const filteredItems = groupBuyItems.filter(item => {
-    const matchesCategory = selectedCategory === "전체" || item.category === selectedCategory
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesSearch
-  })
+  // 좋아요 토글
+  const handleLike = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation()
+    
+    const { error } = await groupPurchaseAPI.toggleLike(id)
+    if (error) {
+      alert('좋아요 처리 실패: ' + error)
+      return
+    }
+    
+    fetchItems()
+  }
+
+  // 북마크 토글
+  const handleBookmark = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation()
+    
+    const { error } = await groupPurchaseAPI.toggleBookmark(id)
+    if (error) {
+      alert('북마크 처리 실패: ' + error)
+      return
+    }
+    
+    fetchItems()
+  }
 
   const getProgressPercentage = (current: number, target: number) =>
     Math.min((current / target) * 100, 100)
+
+  if (loading && items.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div>로딩중...</div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -173,104 +155,61 @@ function GroupPurchasePage() {
                   className="pl-10 w-full bg-white"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
-              <div className="flex gap-2 overflow-x-auto justify-center">
-                <Select>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="시/도" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="seoul">서울시</SelectItem>
-                      <SelectItem value="busan">부산시</SelectItem>
-                      <SelectItem value="incheon">인천시</SelectItem>
-                    </SelectContent>
-                </Select>
-
-                <Select>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="시/군/구" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="gangnam">강남구</SelectItem>
-                      <SelectItem value="songpa">송파구</SelectItem>
-                      <SelectItem value="mapo">마포구</SelectItem>
-                    </SelectContent>
-                </Select>
-
-                <Select>
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="읍/면/동" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="yeoksam">역삼동</SelectItem>
-                      <SelectItem value="sangam">상암동</SelectItem>
-                      <SelectItem value="jamsil">잠실동</SelectItem>
-                    </SelectContent>
-                </Select>
-                </div>
-            </div>
-
-            {/* 카테고리 */}
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-              {categories.map(category => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(category)}
-                  className="whitespace-nowrap"
-                  size="sm"
-                >
-                  {category}
-                </Button>
-              ))}
+              <Button onClick={handleSearch}>검색</Button>
             </div>
           </div>
 
+          {error && (
+            <div className="text-center py-6 text-red-500">
+              에러: {error}
+            </div>
+          )}
+
           {/* 카드 목록 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredItems.map((item) => (
-              <Card key={item.id} className="hover:shadow-lg transition-shadow cursor-pointer bg-white">
+            {items.map((item) => (
+              <Card 
+                key={item.id} 
+                className="hover:shadow-lg transition-shadow cursor-pointer bg-white"
+                onClick={() => navigate(`/group-purchase/${item.id}`)}
+              >
                 <CardHeader className="pb-3">
-                  {/* ✅ 위치 정보 */}
+                  {/* 위치 정보 */}
                   <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
                     <MapPin size={12} className="text-blue-600" />
-                    {item.location.city} &gt; {item.location.district} &gt; {item.location.subdistrict}
+                    {item.regionName}
                   </div>
 
-                  {/* 상태 / 카테고리 */}
+                  {/* 상태 */}
                   <div className="flex items-center justify-between mb-2">
-                    <Badge variant={item.status === "마감" ? "secondary" : "default"}>
-                      {item.status}
+                    <Badge variant={item.status === "COMPLETED" ? "secondary" : "default"}>
+                      {statusLabels[item.status]}
                     </Badge>
-                    <Badge variant="outline">{item.category}</Badge>
                   </div>
 
                   <CardTitle 
                     className="text-lg cursor-pointer hover:text-blue-600"
-                    onClick={() => navigate(`/group-purchase/${item.id}`)}
                   >
                     {item.title}
                   </CardTitle>
-                  <CardDescription className="text-sm">{item.description}</CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-3">
                   {/* 작성자 */}
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarFallback>{item.authorAvatar}</AvatarFallback>
+                      <AvatarFallback>👤</AvatarFallback>
                     </Avatar>
-                    <span className="text-xs text-gray-600">{item.author}</span>
+                    <span className="text-xs text-gray-600">{item.authorName}</span>
                   </div>
 
                   {/* 가격 */}
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold text-blue-600">
                       {item.price.toLocaleString()}원
-                    </span>
-                    <span className="text-sm text-gray-400 line-through">
-                      {item.originalPrice.toLocaleString()}원
                     </span>
                   </div>
 
@@ -279,13 +218,13 @@ function GroupPurchasePage() {
                     <div className="flex items-center justify-between text-sm mb-2">
                       <span className="text-gray-600">
                         <Users className="inline mr-1" size={14} />
-                        {item.currentParticipants}/{item.targetParticipants}명
+                        {item.currentQuantity}/{item.targetQuantity}명
                       </span>
                       <span className="font-semibold text-blue-600">
-                        {Math.round(getProgressPercentage(item.currentParticipants, item.targetParticipants))}%
+                        {Math.round(getProgressPercentage(item.currentQuantity, item.targetQuantity))}%
                       </span>
                     </div>
-                    <Progress value={getProgressPercentage(item.currentParticipants, item.targetParticipants)} />
+                    <Progress value={getProgressPercentage(item.currentQuantity, item.targetQuantity)} />
                   </div>
 
                   {/* 마감일 */}
@@ -299,10 +238,13 @@ function GroupPurchasePage() {
                   {/* 참여 버튼 */}
                   <Button 
                     className="w-full"
-                    disabled={item.status === "마감"}
-                    onClick={() => navigate(`/group-purchase/${item.id}`)}
+                    disabled={item.status === "COMPLETED"}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/group-purchase/${item.id}`)
+                    }}
                   >
-                    {item.status === "마감" ? "마감되었습니다" : "참여하기"}
+                    {item.status === "COMPLETED" ? "마감되었습니다" : "참여하기"}
                   </Button>
 
                   {/* 좋아요, 댓글, 북마크 */}
@@ -310,31 +252,27 @@ function GroupPurchasePage() {
                     <div className="flex items-center gap-4">
                       <button
                         className="flex items-center gap-1 text-sm text-gray-600 hover:text-red-500 transition-colors"
-                        onClick={() => handleLike(item.id)}
+                        onClick={(e) => handleLike(e, item.id)}
                       >
-                        <Heart 
-                          size={16} 
-                          className={likedItems.includes(item.id) ? "fill-red-500 text-red-500" : ""}
-                        />
-                        {item.likes + (likedItems.includes(item.id) ? 1 : 0)}
+                        <Heart size={16} />
+                        {item.likeCount}
                       </button>
                       <button
                         className="flex items-center gap-1 text-sm text-gray-600 hover:text-blue-500 transition-colors"
-                        onClick={() => navigate(`/group-purchase/${item.id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/group-purchase/${item.id}`)
+                        }}
                       >
                         <MessageCircle size={16} />
-                        {item.comments}
+                        {item.commentCount}
                       </button>
                     </div>
                     <button
                       className="flex items-center gap-1 text-sm text-gray-600 hover:text-yellow-500 transition-colors"
-                      onClick={() => handleBookmark(item.id)}
+                      onClick={(e) => handleBookmark(e, item.id)}
                     >
-                      <Bookmark 
-                        size={16}
-                        className={bookmarkedItems.includes(item.id) ? "fill-yellow-400 text-yellow-400" : ""}
-                      />
-                      {item.bookmarks + (bookmarkedItems.includes(item.id) ? 1 : 0)}
+                      <Bookmark size={16} />
                     </button>
                   </div>
                 </CardContent>
@@ -343,10 +281,32 @@ function GroupPurchasePage() {
           </div>
 
           {/* 결과 없음 */}
-          {filteredItems.length === 0 && (
+          {!loading && items.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">검색 결과가 없습니다.</p>
-              <p className="text-gray-400 text-sm mt-2">다른 검색어를 입력해보세요.</p>
+              <p className="text-gray-500 text-lg">공동구매가 없습니다.</p>
+            </div>
+          )}
+
+          {/* 페이지네이션 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                disabled={currentPage === 0}
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                이전
+              </Button>
+              <span className="flex items-center px-4">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                다음
+              </Button>
             </div>
           )}
         </div>

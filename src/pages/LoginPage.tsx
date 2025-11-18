@@ -7,15 +7,16 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Eye, EyeOff } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+import { userAPI } from '@/api/client'
 
-// 카카오 아이콘
 const KakaoIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <path d="M9 0C4.029 0 0 3.354 0 7.5c0 2.745 1.863 5.145 4.638 6.48-.195.72-.72 2.625-.825 3.015-.12.465.165.45.345.33.135-.09 2.13-1.44 2.94-1.995C7.695 15.45 8.34 15.525 9 15.525c4.971 0 9-3.354 9-7.5S13.971 0 9 0z" fill="currentColor"/>
   </svg>
 )
 
-// 구글 아이콘
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
     <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -26,26 +27,68 @@ const GoogleIcon = () => (
 )
 
 function LoginPage() {
+  const navigate = useNavigate()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleLocalLogin = (e: React.FormEvent) => {
+  // 로컬 로그인
+  const handleLocalLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('로컬 로그인:', { email, password })
-    // TODO: 실제 로그인 API 호출
+    
+    if (!email || !password) {
+      alert('이메일과 비밀번호를 입력해주세요.')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // 실제 로그인 API 호출
+      const { data, error } = await userAPI.login({ email, password })
+      
+      if (error) {
+        alert('로그인 실패: ' + error)
+        setLoading(false)
+        return
+      }
+
+      if (data && data.token) {
+        // JWT에서 userId 추출
+        try {
+          const payload = JSON.parse(atob(data.token.split('.')[1]))
+          const userId = String(payload.userId || payload.sub || payload.id || '1')
+          
+          // AuthContext에 저장
+          login(data.token, userId)
+          alert('로그인 성공!')
+          navigate('/')
+        } catch (jwtError) {
+          console.error('JWT 파싱 에러:', jwtError)
+          // JWT 파싱 실패해도 토큰은 저장
+          login(data.token, '1')
+          alert('로그인 성공!')
+          navigate('/')
+        }
+      }
+    } catch (err: any) {
+      console.error('로그인 에러:', err)
+      alert('로그인 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
   }
 
+  // 카카오 로그인
   const handleKakaoLogin = () => {
-    console.log('카카오 로그인')
-    // TODO: 카카오 OAuth 로직
-    // window.location.href = 'YOUR_KAKAO_OAUTH_URL'
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/kakao`
   }
 
+  // 구글 로그인  
   const handleGoogleLogin = () => {
-    console.log('구글 로그인')
-    // TODO: 구글 OAuth 로직
-    // window.location.href = 'YOUR_GOOGLE_OAUTH_URL'
+    window.location.href = `${import.meta.env.VITE_API_BASE_URL}/oauth2/authorization/google`
   }
 
   return (
@@ -110,8 +153,12 @@ function LoginPage() {
                 </a>
               </div>
 
-              <Button type="submit" className="w-full h-11 bg-sky-600 hover:bg-sky-700">
-                로그인
+              <Button 
+                type="submit" 
+                className="w-full h-11 bg-sky-600 hover:bg-sky-700"
+                disabled={loading}
+              >
+                {loading ? '로그인중...' : '로그인'}
               </Button>
             </form>
 
@@ -149,7 +196,10 @@ function LoginPage() {
             {/* 회원가입 링크 */}
             <div className="text-center text-sm text-gray-600 pt-4 border-t">
               아직 계정이 없으신가요?{' '}
-              <a href="#" className="text-sky-600 hover:text-sky-700 font-medium hover:underline">
+              <a 
+                href="/signup" 
+                className="text-sky-600 hover:text-sky-700 font-medium hover:underline"
+              >
                 회원가입
               </a>
             </div>

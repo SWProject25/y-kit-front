@@ -1,6 +1,6 @@
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -14,116 +14,124 @@ import {
   Eye,
   PenSquare
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { communityAPI } from '@/api/client'
+import type { CommunityListResponse, CommunityCategory } from '@/types/api'
 
-// 임시 더미 데이터
-const posts = [
-  {
-    id: 1,
-    title: "청년 월세 지원 받으신 분 계신가요?",
-    content: "신청 방법이 궁금해요. 서류 준비는 어떻게 하나요?",
-    author: "청년A",
-    authorAvatar: "👤",
-    category: "정책질문",
-    views: 234,
-    likes: 45,
-    comments: 23,
-    bookmarks: 12,
-    createdAt: "2시간 전",
-    tags: ["월세지원", "청년정책", "주거"]
-  },
-  {
-    id: 2,
-    title: "강남 저렴한 헬스장 추천해주세요",
-    content: "월 3~4만원대로 다닐 수 있는 곳 있을까요?",
-    author: "운동러버",
-    authorAvatar: "💪",
-    category: "정보공유",
-    views: 567,
-    likes: 89,
-    comments: 45,
-    bookmarks: 34,
-    createdAt: "5시간 전",
-    tags: ["헬스장", "강남구", "알뜰정보"]
-  },
-  {
-    id: 3,
-    title: "취업 준비 같이 하실 분 구해요",
-    content: "스터디 카페에서 주 3회 모여서 같이 공부하실 분 찾습니다!",
-    author: "취준생123",
-    authorAvatar: "📚",
-    category: "모임",
-    views: 123,
-    likes: 34,
-    comments: 18,
-    bookmarks: 8,
-    createdAt: "1일 전",
-    tags: ["취업", "스터디", "모임"]
-  },
-  {
-    id: 4,
-    title: "청년도약계좌 vs 청년내일저축계좌 비교",
-    content: "두 개 중에 어떤 게 더 유리한가요? 자세한 비교 부탁드립니다.",
-    author: "재테크초보",
-    authorAvatar: "💰",
-    category: "정책질문",
-    views: 890,
-    likes: 156,
-    comments: 67,
-    bookmarks: 89,
-    createdAt: "1일 전",
-    tags: ["저축", "금융정책", "비교"]
-  },
-  {
-    id: 5,
-    title: "저렴한 점심 식사 맛집 리스트",
-    content: "서울 주요 지역별로 5천원 이하 점심 맛집 정리했어요!",
-    author: "맛집탐방가",
-    authorAvatar: "🍽️",
-    category: "정보공유",
-    views: 1234,
-    likes: 234,
-    comments: 89,
-    bookmarks: 123,
-    createdAt: "2일 전",
-    tags: ["맛집", "점심", "가성비"]
-  }
-]
-
-const categories = ["전체", "정책질문", "정보공유", "모임", "고민상담", "자유"]
+const categories: (CommunityCategory | "전체")[] = ["전체", "FREE", "QUESTION", "TIP", "REVIEW", "NEWS"]
+const categoryLabels: Record<CommunityCategory | "전체", string> = {
+  "전체": "전체",
+  "FREE": "자유",
+  "QUESTION": "질문",
+  "TIP": "팁",
+  "REVIEW": "후기",
+  "NEWS": "뉴스"
+}
 
 function CommunityPage() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("전체")
+  const [selectedCategory, setSelectedCategory] = useState<CommunityCategory | "전체">("전체")
   const [sortBy, setSortBy] = useState("latest")
-  const [likedPosts, setLikedPosts] = useState<number[]>([])
-  const [bookmarkedPosts, setBookmarkedPosts] = useState<number[]>([])
+  const [posts, setPosts] = useState<CommunityListResponse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
 
-  const handleLike = (id: number) => {
-    if (likedPosts.includes(id)) {
-      setLikedPosts(likedPosts.filter(post => post !== id))
-    } else {
-      setLikedPosts([...likedPosts, id])
+  // 게시글 목록 불러오기
+  useEffect(() => {
+    fetchPosts()
+  }, [selectedCategory, currentPage])
+
+  const fetchPosts = async () => {
+    setLoading(true)
+    setError(null)
+
+    const { data, error: apiError } = await communityAPI.getCommunityList({
+      category: selectedCategory === "전체" ? undefined : selectedCategory,
+      page: currentPage,
+      size: 20
+    })
+
+    if (apiError) {
+      setError(apiError)
+      setLoading(false)
+      return
     }
+
+    if (data) {
+      setPosts(data.content)
+      setTotalPages(data.totalPages)
+    }
+    setLoading(false)
   }
 
-  const handleBookmark = (id: number) => {
-    if (bookmarkedPosts.includes(id)) {
-      setBookmarkedPosts(bookmarkedPosts.filter(post => post !== id))
-    } else {
-      setBookmarkedPosts([...bookmarkedPosts, id])
+  // 검색
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      fetchPosts()
+      return
     }
+
+    setLoading(true)
+    const { data, error: apiError } = await communityAPI.searchCommunities({
+      keyword: searchTerm,
+      page: currentPage,
+      size: 20
+    })
+
+    if (apiError) {
+      setError(apiError)
+      setLoading(false)
+      return
+    }
+
+    if (data) {
+      setPosts(data.content)
+      setTotalPages(data.totalPages)
+    }
+    setLoading(false)
   }
 
-  // 필터링된 게시글
-  const filteredPosts = posts.filter(post => {
-    const matchesCategory = selectedCategory === "전체" || post.category === selectedCategory
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.content.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesSearch
-  })
+  // 좋아요 토글
+  const handleLike = async (e: React.MouseEvent, communityId: number) => {
+    e.stopPropagation()
+    
+    const { error } = await communityAPI.toggleLike(communityId)
+    if (error) {
+      alert('좋아요 처리 실패: ' + error)
+      return
+    }
+    
+    fetchPosts()
+  }
+
+  // 북마크 토글
+  const handleBookmark = async (e: React.MouseEvent, communityId: number) => {
+    e.stopPropagation()
+    
+    const { error } = await communityAPI.toggleBookmark(communityId)
+    if (error) {
+      alert('북마크 처리 실패: ' + error)
+      return
+    }
+    
+    fetchPosts()
+  }
+
+  if (loading && posts.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div>로딩중...</div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -141,7 +149,10 @@ function CommunityPage() {
                 청년들과 정보를 나누고 소통하는 공간
               </p>
             </div>
-            <Button className="flex items-center gap-2">
+            <Button 
+              className="flex items-center gap-2"
+              onClick={() => navigate('/community/write')}
+            >
               <PenSquare size={18} />
               글쓰기
             </Button>
@@ -159,8 +170,10 @@ function CommunityPage() {
                   className="pl-10 w-full bg-white"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
+              <Button onClick={handleSearch}>검색</Button>
             </div>
 
             {/* 카테고리 필터 */}
@@ -169,11 +182,14 @@ function CommunityPage() {
                 <Button
                   key={category}
                   variant={selectedCategory === category ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => {
+                    setSelectedCategory(category)
+                    setCurrentPage(0)
+                  }}
                   className="whitespace-nowrap"
                   size="sm"
                 >
-                  {category}
+                  {categoryLabels[category]}
                 </Button>
               ))}
             </div>
@@ -181,7 +197,7 @@ function CommunityPage() {
             {/* 결과 및 정렬 */}
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                총 <span className="font-semibold text-gray-900 text-base">{filteredPosts.length}</span>개의 게시글
+                총 <span className="font-semibold text-gray-900 text-base">{posts.length}</span>개의 게시글
               </p>
               
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -197,9 +213,15 @@ function CommunityPage() {
             </div>
           </div>
 
+          {error && (
+            <div className="text-center py-6 text-red-500">
+              에러: {error}
+            </div>
+          )}
+
           {/* 게시글 리스트 */}
           <div className="space-y-4">
-            {filteredPosts.map((post) => (
+            {posts.map((post) => (
               <Card 
                 key={post.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer bg-white"
@@ -209,14 +231,16 @@ function CommunityPage() {
                   <div className="flex items-start gap-4">
                     {/* 작성자 아바타 */}
                     <Avatar className="h-12 w-12 flex-shrink-0">
-                      <AvatarFallback className="text-2xl">{post.authorAvatar}</AvatarFallback>
+                      <AvatarFallback>👤</AvatarFallback>
                     </Avatar>
 
                     {/* 게시글 내용 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary" className="text-xs">{post.category}</Badge>
-                        <span className="text-sm text-gray-600">{post.author}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {categoryLabels[post.category]}
+                        </Badge>
+                        <span className="text-sm text-gray-600">{post.authorName}</span>
                         <span className="text-sm text-gray-400">·</span>
                         <span className="text-sm text-gray-400">{post.createdAt}</span>
                       </div>
@@ -225,57 +249,31 @@ function CommunityPage() {
                         {post.title}
                       </h3>
 
-                      <p className="text-gray-600 mb-3 line-clamp-2">
-                        {post.content}
-                      </p>
-
-                      {/* 태그 */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {post.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            #{tag}
-                          </Badge>
-                        ))}
-                      </div>
-
                       {/* 통계 및 액션 버튼 */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
                             <Eye size={16} />
-                            {post.views}
+                            {post.viewCount}
                           </span>
                           <button
                             className="flex items-center gap-1 hover:text-red-500 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleLike(post.id)
-                            }}
+                            onClick={(e) => handleLike(e, post.id)}
                           >
-                            <Heart 
-                              size={16} 
-                              className={likedPosts.includes(post.id) ? "fill-red-500 text-red-500" : ""}
-                            />
-                            {post.likes + (likedPosts.includes(post.id) ? 1 : 0)}
+                            <Heart size={16} />
+                            {post.likeCount}
                           </button>
                           <span className="flex items-center gap-1">
                             <MessageCircle size={16} />
-                            {post.comments}
+                            {post.commentCount}
                           </span>
                         </div>
 
                         <button
                           className="flex items-center gap-1 text-sm text-gray-500 hover:text-yellow-500 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleBookmark(post.id)
-                          }}
+                          onClick={(e) => handleBookmark(e, post.id)}
                         >
-                          <Bookmark 
-                            size={16}
-                            className={bookmarkedPosts.includes(post.id) ? "fill-yellow-400 text-yellow-400" : ""}
-                          />
-                          {post.bookmarks + (bookmarkedPosts.includes(post.id) ? 1 : 0)}
+                          <Bookmark size={16} />
                         </button>
                       </div>
                     </div>
@@ -286,10 +284,32 @@ function CommunityPage() {
           </div>
 
           {/* 검색 결과 없음 */}
-          {filteredPosts.length === 0 && (
+          {!loading && posts.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">검색 결과가 없습니다.</p>
-              <p className="text-gray-400 text-sm mt-2">다른 검색어를 입력해보세요.</p>
+              <p className="text-gray-500 text-lg">게시글이 없습니다.</p>
+            </div>
+          )}
+
+          {/* 페이지네이션 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-8">
+              <Button
+                variant="outline"
+                disabled={currentPage === 0}
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                이전
+              </Button>
+              <span className="flex items-center px-4">
+                {currentPage + 1} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                disabled={currentPage >= totalPages - 1}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                다음
+              </Button>
             </div>
           )}
         </div>

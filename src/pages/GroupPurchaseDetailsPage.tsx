@@ -9,70 +9,161 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { 
   ArrowLeft,
-  Users, 
   Heart, 
   Bookmark, 
   MessageCircle,
   Clock,
   MapPin,
   Calendar,
-  Package,
   Send
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { groupPurchaseAPI } from '@/api/client'
+import type { GroupPurchaseDetailResponse, GroupPurchaseStatus } from '@/types/api'
 
-// 임시 더미 데이터
-const groupBuyData = {
-  id: 1,
-  title: "제주 감귤 5kg 공동구매",
-  description: "달콤한 제주 감귤을 저렴하게! 무료배송\n\n신선한 제주 감귤을 산지 직송으로 받아보세요. 당도가 높고 맛있습니다!",
-  author: "김철수",
-  authorAvatar: "👨",
-  category: "식품",
-  price: 15000,
-  originalPrice: 25000,
-  currentParticipants: 8,
-  targetParticipants: 10,
-  deadline: "2025.11.10",
-  startDate: "2025.11.04",
-  location: {
-    city: "서울시",
-    district: "강남구",
-    neighborhood: "역삼동"
-  },
-  meetingPlace: "역삼역 2번 출구 앞",
-  image: "🍊",
-  likes: 24,
-  comments: 12,
-  bookmarks: 8,
-  status: "모집중",
-  createdAt: "2시간 전",
-  productInfo: "제주 감귤 5kg (중과)\n원산지: 제주\n배송: 산지직송",
-  participants: [
-    { name: "김철수", avatar: "👨", joinedAt: "2시간 전" },
-    { name: "이영희", avatar: "👩", joinedAt: "1시간 전" },
-    { name: "박민수", avatar: "👨", joinedAt: "30분 전" },
-    { name: "정수진", avatar: "👩", joinedAt: "10분 전" }
-  ]
+const statusLabels: Record<GroupPurchaseStatus, string> = {
+  'RECRUITING': '모집중',
+  'IN_PROGRESS': '진행중',
+  'COMPLETED': '완료',
+  'CANCELLED': '취소'
 }
-
-const commentsData = [
-  { id: 1, author: "이영희", avatar: "👩", content: "참여합니다! 언제 받을 수 있나요?", createdAt: "1시간 전", likes: 3 },
-  { id: 2, author: "박민수", avatar: "👨", content: "감귤 당도가 어느정도인가요?", createdAt: "40분 전", likes: 1 },
-  { id: 3, author: "김철수", avatar: "👨", content: "@박민수 당도 12-13브릭스 정도입니다!", createdAt: "35분 전", likes: 2 }
-]
 
 function GroupPurchaseDetailsPage() {
   const navigate = useNavigate()
-  const { id } = useParams()
-  const [liked, setLiked] = useState(false)
-  const [bookmarked, setBookmarked] = useState(false)
-  const [joined, setJoined] = useState(false)
+  const { id } = useParams<{ id: string }>()
+  const [item, setItem] = useState<GroupPurchaseDetailResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [comment, setComment] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  // 공동구매 상세 조회
+  useEffect(() => {
+    if (!id) return
+    fetchItemDetail()
+  }, [id])
+
+  const fetchItemDetail = async () => {
+    if (!id) return
+    
+    setLoading(true)
+    const { data, error: apiError } = await groupPurchaseAPI.getGroupPurchase(Number(id))
+
+    if (apiError) {
+      setError(apiError)
+      setLoading(false)
+      return
+    }
+
+    if (data) {
+      setItem(data)
+    }
+    setLoading(false)
+  }
+
+  // 참여하기
+  const handleJoin = async () => {
+    if (!id) return
+    
+    const { error } = await groupPurchaseAPI.joinGroupPurchase(Number(id))
+    if (error) {
+      alert('참여 실패: ' + error)
+      return
+    }
+    
+    alert('참여 완료!')
+    fetchItemDetail()
+  }
+
+  // 좋아요 토글
+  const handleToggleLike = async () => {
+    if (!id) return
+    
+    const { error } = await groupPurchaseAPI.toggleLike(Number(id))
+    if (error) {
+      alert('좋아요 처리 실패: ' + error)
+      return
+    }
+    
+    fetchItemDetail()
+  }
+
+  // 북마크 토글
+  const handleToggleBookmark = async () => {
+    if (!id) return
+    
+    const { error } = await groupPurchaseAPI.toggleBookmark(Number(id))
+    if (error) {
+      alert('북마크 처리 실패: ' + error)
+      return
+    }
+    
+    fetchItemDetail()
+  }
+
+  // 댓글 작성
+  const handleSubmitComment = async () => {
+    if (!id || !comment.trim()) return
+    
+    setSubmitting(true)
+    const { error } = await groupPurchaseAPI.createComment(Number(id), {
+      content: comment
+    })
+
+    if (error) {
+      alert('댓글 작성 실패: ' + error)
+      setSubmitting(false)
+      return
+    }
+
+    setComment("")
+    setSubmitting(false)
+    fetchItemDetail()
+  }
+
+  // 댓글 삭제
+  const handleDeleteComment = async (commentId: number) => {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return
+    
+    const { error } = await groupPurchaseAPI.deleteComment(commentId)
+    if (error) {
+      alert('댓글 삭제 실패: ' + error)
+      return
+    }
+    
+    fetchItemDetail()
+  }
 
   const getProgressPercentage = (current: number, target: number) => {
     return Math.min((current / target) * 100, 100)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div>로딩중...</div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (error || !item) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error || '공동구매를 찾을 수 없습니다.'}</p>
+            <Button onClick={() => navigate('/group-purchase')}>목록으로</Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -100,51 +191,48 @@ function GroupPurchaseDetailsPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Badge>{groupBuyData.status}</Badge>
-                      <Badge variant="outline">{groupBuyData.category}</Badge>
+                      <Badge>{statusLabels[item.status]}</Badge>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setLiked(!liked)}
+                        onClick={handleToggleLike}
                       >
                         <Heart 
                           size={20} 
-                          className={liked ? "fill-red-500 text-red-500" : ""}
+                          className={item.isLiked ? "fill-red-500 text-red-500" : ""}
                         />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => setBookmarked(!bookmarked)}
+                        onClick={handleToggleBookmark}
                       >
                         <Bookmark 
                           size={20}
-                          className={bookmarked ? "fill-yellow-400 text-yellow-400" : ""}
+                          className={item.isBookmarked ? "fill-yellow-400 text-yellow-400" : ""}
                         />
                       </Button>
                     </div>
                   </div>
-                  <CardTitle className="text-3xl mb-4">{groupBuyData.title}</CardTitle>
+                  <CardTitle className="text-3xl mb-4">{item.title}</CardTitle>
                   
                   {/* 작성자 정보 */}
                   <div className="flex items-center gap-3 mb-4">
                     <Avatar>
-                      <AvatarFallback className="text-2xl">{groupBuyData.authorAvatar}</AvatarFallback>
+                      <AvatarFallback>👤</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold">{groupBuyData.author}</p>
-                      <p className="text-sm text-gray-500">{groupBuyData.createdAt}</p>
+                      <p className="font-semibold">{item.authorName}</p>
+                      <p className="text-sm text-gray-500">{item.createdAt}</p>
                     </div>
                   </div>
 
                   {/* 위치 정보 */}
                   <div className="flex items-center gap-2 text-gray-600 bg-gray-50 p-3 rounded-lg">
                     <MapPin size={18} />
-                    <span className="text-sm">
-                      {groupBuyData.location.city} {groupBuyData.location.district} {groupBuyData.location.neighborhood}
-                    </span>
+                    <span className="text-sm">{item.regionName}</span>
                   </div>
                 </CardHeader>
 
@@ -155,29 +243,8 @@ function GroupPurchaseDetailsPage() {
                   <div>
                     <h3 className="font-semibold text-lg mb-3">상세 설명</h3>
                     <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {groupBuyData.description}
+                      {item.content}
                     </p>
-                  </div>
-
-                  <Separator />
-
-                  {/* 상품 정보 */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                      <Package size={20} />
-                      상품 정보
-                    </h3>
-                    <p className="text-gray-700 whitespace-pre-line bg-gray-50 p-4 rounded-lg">
-                      {groupBuyData.productInfo}
-                    </p>
-                  </div>
-
-                  <Separator />
-
-                  {/* 픽업 장소 */}
-                  <div>
-                    <h3 className="font-semibold text-lg mb-3">픽업 장소</h3>
-                    <p className="text-gray-700">{groupBuyData.meetingPlace}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -187,7 +254,7 @@ function GroupPurchaseDetailsPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageCircle size={20} />
-                    댓글 ({commentsData.length})
+                    댓글 ({item.comments?.length || 0})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -203,6 +270,15 @@ function GroupPurchaseDetailsPage() {
                         onChange={(e) => setComment(e.target.value)}
                         className="mb-2"
                       />
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={handleSubmitComment}
+                          disabled={submitting || !comment.trim()}
+                        >
+                          <Send size={16} className="mr-2" />
+                          {submitting ? '작성중...' : '댓글 작성'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -210,20 +286,22 @@ function GroupPurchaseDetailsPage() {
 
                   {/* 댓글 목록 */}
                   <div className="space-y-4">
-                    {commentsData.map((comment) => (
+                    {item.comments?.map((comment) => (
                       <div key={comment.id} className="flex gap-3">
                         <Avatar>
-                          <AvatarFallback>{comment.avatar}</AvatarFallback>
+                          <AvatarFallback>👤</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-sm">{comment.author}</span>
+                            <span className="font-semibold text-sm">{comment.authorName}</span>
                             <span className="text-xs text-gray-500">{comment.createdAt}</span>
                           </div>
                           <p className="text-gray-700 text-sm mb-2">{comment.content}</p>
-                          <button className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1">
-                            <Heart size={12} />
-                            좋아요 {comment.likes}
+                          <button 
+                            className="text-xs text-gray-500 hover:text-red-500"
+                            onClick={() => handleDeleteComment(comment.id)}
+                          >
+                            삭제
                           </button>
                         </div>
                       </div>
@@ -243,15 +321,9 @@ function GroupPurchaseDetailsPage() {
                     <p className="text-sm text-gray-500 mb-1">1인당 가격</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-blue-600">
-                        {groupBuyData.price.toLocaleString()}원
-                      </span>
-                      <span className="text-sm text-gray-400 line-through">
-                        {groupBuyData.originalPrice.toLocaleString()}원
+                        {item.price.toLocaleString()}원
                       </span>
                     </div>
-                    <p className="text-sm text-green-600 mt-1">
-                      {Math.round(((groupBuyData.originalPrice - groupBuyData.price) / groupBuyData.originalPrice) * 100)}% 할인
-                    </p>
                   </div>
 
                   <Separator />
@@ -261,12 +333,12 @@ function GroupPurchaseDetailsPage() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-gray-600">참여 현황</span>
                       <span className="font-semibold text-blue-600">
-                        {groupBuyData.currentParticipants}/{groupBuyData.targetParticipants}명
+                        {item.currentQuantity}/{item.targetQuantity}명
                       </span>
                     </div>
-                    <Progress value={getProgressPercentage(groupBuyData.currentParticipants, groupBuyData.targetParticipants)} className="mb-2" />
+                    <Progress value={getProgressPercentage(item.currentQuantity, item.targetQuantity)} className="mb-2" />
                     <p className="text-xs text-gray-500">
-                      {groupBuyData.targetParticipants - groupBuyData.currentParticipants}명 더 필요해요!
+                      {item.targetQuantity - item.currentQuantity}명 더 필요해요!
                     </p>
                   </div>
 
@@ -275,14 +347,9 @@ function GroupPurchaseDetailsPage() {
                   {/* 기간 정보 */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm">
-                      <Calendar size={16} className="text-gray-500" />
-                      <span className="text-gray-600">시작:</span>
-                      <span className="font-semibold">{groupBuyData.startDate}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
                       <Clock size={16} className="text-gray-500" />
                       <span className="text-gray-600">마감:</span>
-                      <span className="font-semibold text-orange-600">{groupBuyData.deadline}</span>
+                      <span className="font-semibold text-orange-600">{item.deadline}</span>
                     </div>
                   </div>
 
@@ -291,62 +358,17 @@ function GroupPurchaseDetailsPage() {
                   {/* 참여하기 버튼 */}
                   <Button 
                     className="w-full bg-blue-500 h-12 text-lg"
-                    disabled={groupBuyData.status === "마감" || joined}
-                    onClick={() => setJoined(true)}
+                    disabled={item.status === "COMPLETED" || item.isParticipating}
+                    onClick={handleJoin}
                   >
-                    {joined ? "참여 완료" : groupBuyData.status === "마감" ? "마감되었습니다" : "참여하기"}
+                    {item.isParticipating ? "참여 완료" : item.status === "COMPLETED" ? "마감되었습니다" : "참여하기"}
                   </Button>
 
-                  {joined && (
+                  {item.isParticipating && (
                     <p className="text-sm text-center text-green-600">
                       ✓ 공동구매에 참여하셨습니다!
                     </p>
                   )}
-                </CardContent>
-              </Card>
-              {/* 참여자 목록 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users size={20} />
-                    참여자 ({groupBuyData.currentParticipants}명)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {groupBuyData.participants.map((participant, index) => (
-                      <div key={index} className="flex flex-col items-center p-3 bg-gray-50 rounded-lg">
-                        <Avatar className="mb-2">
-                          <AvatarFallback className="text-2xl">{participant.avatar}</AvatarFallback>
-                        </Avatar>
-                        <p className="font-semibold text-sm">{participant.name}</p>
-                        <p className="text-xs text-gray-500">{participant.joinedAt}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 통계 */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-around text-center">
-                    <div>
-                      <Heart size={20} className="mx-auto mb-1 text-gray-400" />
-                      <p className="text-sm font-semibold">{groupBuyData.likes + (liked ? 1 : 0)}</p>
-                      <p className="text-xs text-gray-500">좋아요</p>
-                    </div>
-                    <div>
-                      <MessageCircle size={20} className="mx-auto mb-1 text-gray-400" />
-                      <p className="text-sm font-semibold">{groupBuyData.comments}</p>
-                      <p className="text-xs text-gray-500">댓글</p>
-                    </div>
-                    <div>
-                      <Bookmark size={20} className="mx-auto mb-1 text-gray-400" />
-                      <p className="text-sm font-semibold">{groupBuyData.bookmarks + (bookmarked ? 1 : 0)}</p>
-                      <p className="text-xs text-gray-500">북마크</p>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
             </div>
