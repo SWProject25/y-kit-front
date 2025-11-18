@@ -12,85 +12,138 @@ import {
   Bookmark, 
   MessageCircle,
   Eye,
-  Send,
-  Share2
+  Send
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { communityAPI } from '@/api/client'
+import type { CommunityDetailResponse, CommunityCategory } from '@/types/api'
 
-// 임시 더미 데이터
-const postData = {
-  id: 1,
-  title: "청년 월세 지원 받으신 분 계신가요?",
-  content: `신청 방법이 궁금해요. 서류 준비는 어떻게 하나요?
-
-안녕하세요! 청년 월세 지원 정책에 대해 궁금한 점이 많아서 글 올립니다.
-
-1. 신청 자격이 정확히 어떻게 되나요?
-2. 필요한 서류는 무엇인가요?
-3. 신청 기간이 언제까지인가요?
-4. 실제로 받으신 분들 계시면 후기 부탁드립니다!
-
-자세한 정보 공유해주시면 정말 감사하겠습니다 🙏`,
-  author: "청년A",
-  authorAvatar: "👤",
-  category: "정책질문",
-  views: 234,
-  likes: 45,
-  comments: 23,
-  bookmarks: 12,
-  createdAt: "2시간 전",
-  tags: ["월세지원", "청년정책", "주거", "질문"],
-  commentList: [
-    {
-      id: 1,
-      author: "정책박사",
-      avatar: "🎓",
-      content: "저도 최근에 신청했어요! 필요한 서류는 주민등록등본, 임대차계약서, 소득증빙서류 등이에요. 자세한 건 청년정책 페이지에서 확인하시면 됩니다!",
-      createdAt: "1시간 전",
-      likes: 12
-    },
-    {
-      id: 2,
-      author: "월세걱정",
-      avatar: "😥",
-      content: "저는 작년에 받았는데, 신청 과정이 생각보다 간단했어요. 온라인으로 신청하고 서류만 제출하면 됩니다.",
-      createdAt: "1시간 전",
-      likes: 8
-    },
-    {
-      id: 3,
-      author: "도움러",
-      avatar: "💁",
-      content: "신청 자격은 만 19-34세 무주택 청년이고, 소득 기준도 있으니 확인해보세요!",
-      createdAt: "40분 전",
-      likes: 5
-    },
-    {
-      id: 4,
-      author: "청년A",
-      avatar: "👤",
-      content: "다들 답변 감사합니다! 많은 도움이 됐어요 ㅎㅎ",
-      createdAt: "30분 전",
-      likes: 3
-    }
-  ]
+const categoryLabels: Record<CommunityCategory, string> = {
+  "FREE": "자유",
+  "QUESTION": "질문",
+  "TIP": "팁",
+  "REVIEW": "후기",
+  "NEWS": "뉴스"
 }
 
 function CommunityDetailsPage() {
   const navigate = useNavigate()
-  const { id } = useParams()
-  const [liked, setLiked] = useState(false)
-  const [bookmarked, setBookmarked] = useState(false)
+  const { id } = useParams<{ id: string }>()
+  const [post, setPost] = useState<CommunityDetailResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [comment, setComment] = useState("")
-  const [commentLikes, setCommentLikes] = useState<number[]>([])
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleCommentLike = (commentId: number) => {
-    if (commentLikes.includes(commentId)) {
-      setCommentLikes(commentLikes.filter(id => id !== commentId))
-    } else {
-      setCommentLikes([...commentLikes, commentId])
+  // 게시글 상세 조회
+  useEffect(() => {
+    if (!id) return
+    fetchPostDetail()
+  }, [id])
+
+  const fetchPostDetail = async () => {
+    if (!id) return
+    
+    setLoading(true)
+    const { data, error: apiError } = await communityAPI.getCommunityDetail(Number(id))
+
+    if (apiError) {
+      setError(apiError)
+      setLoading(false)
+      return
     }
+
+    if (data) {
+      setPost(data)
+    }
+    setLoading(false)
+  }
+
+  // 좋아요 토글
+  const handleToggleLike = async () => {
+    if (!id) return
+    
+    const { error } = await communityAPI.toggleLike(Number(id))
+    if (error) {
+      alert('좋아요 처리 실패: ' + error)
+      return
+    }
+    
+    fetchPostDetail()
+  }
+
+  // 북마크 토글
+  const handleToggleBookmark = async () => {
+    if (!id) return
+    
+    const { error } = await communityAPI.toggleBookmark(Number(id))
+    if (error) {
+      alert('북마크 처리 실패: ' + error)
+      return
+    }
+    
+    fetchPostDetail()
+  }
+
+  // 댓글 작성
+  const handleSubmitComment = async () => {
+    if (!id || !comment.trim()) return
+    
+    setSubmitting(true)
+    const { error } = await communityAPI.createComment(Number(id), {
+      content: comment
+    })
+
+    if (error) {
+      alert('댓글 작성 실패: ' + error)
+      setSubmitting(false)
+      return
+    }
+
+    setComment("")
+    setSubmitting(false)
+    fetchPostDetail() // 댓글 목록 새로고침
+  }
+
+  // 댓글 삭제
+  const handleDeleteComment = async (commentId: number) => {
+    if (!confirm('댓글을 삭제하시겠습니까?')) return
+    
+    const { error } = await communityAPI.deleteComment(commentId)
+    if (error) {
+      alert('댓글 삭제 실패: ' + error)
+      return
+    }
+    
+    fetchPostDetail()
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div>로딩중...</div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (error || !post) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-500 mb-4">{error || '게시글을 찾을 수 없습니다.'}</p>
+            <Button onClick={() => navigate('/community')}>목록으로</Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -115,31 +168,25 @@ function CommunityDetailsPage() {
             <CardHeader>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Badge>{postData.category}</Badge>
+                  <Badge>{categoryLabels[post.category]}</Badge>
                   <span className="text-sm text-gray-500 flex items-center gap-1">
                     <Eye size={14} />
-                    {postData.views}
+                    {post.viewCount}
                   </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Share2 size={16} className="mr-1" />
-                    공유
-                  </Button>
                 </div>
               </div>
 
-              <CardTitle className="text-3xl mb-4">{postData.title}</CardTitle>
+              <CardTitle className="text-3xl mb-4">{post.title}</CardTitle>
 
               {/* 작성자 정보 */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarFallback className="text-2xl">{postData.authorAvatar}</AvatarFallback>
+                    <AvatarFallback>👤</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{postData.author}</p>
-                    <p className="text-sm text-gray-500">{postData.createdAt}</p>
+                    <p className="font-semibold">{post.authorName}</p>
+                    <p className="text-sm text-gray-500">{post.createdAt}</p>
                   </div>
                 </div>
 
@@ -147,21 +194,21 @@ function CommunityDetailsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setLiked(!liked)}
+                    onClick={handleToggleLike}
                   >
                     <Heart 
                       size={20} 
-                      className={liked ? "fill-red-500 text-red-500" : ""}
+                      className={post.isLiked ? "fill-red-500 text-red-500" : ""}
                     />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setBookmarked(!bookmarked)}
+                    onClick={handleToggleBookmark}
                   >
                     <Bookmark 
                       size={20}
-                      className={bookmarked ? "fill-yellow-400 text-yellow-400" : ""}
+                      className={post.isBookmarked ? "fill-yellow-400 text-yellow-400" : ""}
                     />
                   </Button>
                 </div>
@@ -174,15 +221,8 @@ function CommunityDetailsPage() {
               {/* 게시글 내용 */}
               <div className="prose max-w-none">
                 <p className="text-gray-700 whitespace-pre-line leading-relaxed text-base">
-                  {postData.content}
+                  {post.content}
                 </p>
-              </div>
-
-              {/* 태그 */}
-              <div className="flex flex-wrap gap-2">
-                {postData.tags.map(tag => (
-                  <Badge key={tag} variant="outline">#{tag}</Badge>
-                ))}
               </div>
 
               <Separator />
@@ -192,26 +232,19 @@ function CommunityDetailsPage() {
                 <div className="flex items-center gap-6">
                   <button
                     className="flex items-center gap-2 text-gray-600 hover:text-red-500 transition-colors"
-                    onClick={() => setLiked(!liked)}
+                    onClick={handleToggleLike}
                   >
                     <Heart 
                       size={20} 
-                      className={liked ? "fill-red-500 text-red-500" : ""}
+                      className={post.isLiked ? "fill-red-500 text-red-500" : ""}
                     />
-                    <span className="font-semibold">
-                      {postData.likes + (liked ? 1 : 0)}
-                    </span>
+                    <span className="font-semibold">{post.likeCount}</span>
                   </button>
                   <div className="flex items-center gap-2 text-gray-600">
                     <MessageCircle size={20} />
-                    <span className="font-semibold">{postData.comments}</span>
+                    <span className="font-semibold">{post.commentCount}</span>
                   </div>
                 </div>
-                <button
-                  className="flex items-center gap-2 text-gray-600 hover:text-yellow-500 transition-colors"
-                  onClick={() => setBookmarked(!bookmarked)}
-                >
-                </button>
               </div>
             </CardContent>
           </Card>
@@ -221,7 +254,7 @@ function CommunityDetailsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageCircle size={20} />
-                댓글 {postData.comments}개
+                댓글 {post.comments.length}개
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -238,9 +271,12 @@ function CommunityDetailsPage() {
                     className="mb-2 min-h-[100px]"
                   />
                   <div className="flex justify-end">
-                    <Button>
+                    <Button 
+                      onClick={handleSubmitComment}
+                      disabled={submitting || !comment.trim()}
+                    >
                       <Send size={16} className="mr-2" />
-                      댓글 작성
+                      {submitting ? '작성중...' : '댓글 작성'}
                     </Button>
                   </div>
                 </div>
@@ -250,15 +286,15 @@ function CommunityDetailsPage() {
 
               {/* 댓글 목록 */}
               <div className="space-y-6">
-                {postData.commentList.map((comment) => (
+                {post.comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarFallback>{comment.avatar}</AvatarFallback>
+                      <AvatarFallback>👤</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="font-semibold">{comment.author}</span>
+                          <span className="font-semibold">{comment.authorName}</span>
                           <span className="text-xs text-gray-500">{comment.createdAt}</span>
                         </div>
                         <p className="text-gray-700 leading-relaxed">
@@ -266,18 +302,14 @@ function CommunityDetailsPage() {
                         </p>
                       </div>
                       <div className="mt-2 flex items-center gap-4">
-                        <button 
-                          className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1 transition-colors"
-                          onClick={() => handleCommentLike(comment.id)}
-                        >
-                          <Heart 
-                            size={14}
-                            className={commentLikes.includes(comment.id) ? "fill-red-500 text-red-500" : ""}
-                          />
-                          좋아요 {comment.likes + (commentLikes.includes(comment.id) ? 1 : 0)}
-                        </button>
                         <button className="text-sm text-gray-500 hover:text-blue-500 transition-colors">
                           답글
+                        </button>
+                        <button 
+                          className="text-sm text-gray-500 hover:text-red-500 transition-colors"
+                          onClick={() => handleDeleteComment(comment.id)}
+                        >
+                          삭제
                         </button>
                       </div>
                     </div>
