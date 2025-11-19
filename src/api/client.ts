@@ -28,6 +28,10 @@ import type {
   LocalSignUpRequest,
   DeviceTokenRequest,
   LoginRequest,
+  // Policy
+  PolicyListResponse,
+  PolicyDetailResponse,
+  PolicySearchRequest,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -368,4 +372,73 @@ export const userAPI = {
   // FCM 디바이스 토큰 비활성화
   deactivateDeviceToken: (request: DeviceTokenRequest): Promise<ApiResponse<void>> =>
     post<void>('/api/v1/user/device/deactivate', request),
+};
+
+// ===== 정책 API =====
+export const policyAPI = {
+  getPolicies: (params?: {
+  page?: number;
+  size?: number;
+  sort?: string;
+}): Promise<ApiResponse<PageResponse<PolicyListResponse>>> => {
+  const queryParams = new URLSearchParams();
+  if (params?.page !== undefined) queryParams.append("page", params.page.toString());
+  if (params?.size !== undefined) queryParams.append("size", params.size.toString());
+  if (params?.sort !== undefined) queryParams.append("sort", params.sort);
+
+  return get<PageResponse<PolicyListResponse>>(`/api/v1/policies?${queryParams.toString()}`);
+},
+
+
+  // 정책 상세 조회 (ID)
+  getPolicyDetail: (policyId: number): Promise<ApiResponse<PolicyDetailResponse>> =>
+    get<PolicyDetailResponse>(`/api/v1/policies/${policyId}`),
+
+  // 정책 상세 조회 (정책번호)
+  getPolicyDetailByNo: (policyNo: string): Promise<ApiResponse<PolicyDetailResponse>> =>
+    get<PolicyDetailResponse>(`/api/v1/policies/policyNo/${policyNo}`),
+
+  // 추천 정책 조회
+  getRecommendedPolicies: (params?: {
+    age?: number;
+    regionCode?: string;
+    categoryId?: number;
+    page?: number;
+    size?: number;
+  }): Promise<ApiResponse<PageResponse<PolicyListResponse>>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.age) queryParams.append('age', params.age.toString());
+    if (params?.regionCode) queryParams.append('regionCode', params.regionCode);
+    if (params?.categoryId) queryParams.append('categoryId', params.categoryId.toString());
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+    
+    return get<PageResponse<PolicyListResponse>>(`/api/v1/policies/recommended?${queryParams.toString()}`);
+  },
+
+  // 인기 정책 조회
+  getPopularPolicies: (params?: {
+    sortBy?: string;
+    page?: number;
+    size?: number;
+  }): Promise<ApiResponse<PageResponse<PolicyListResponse>>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+    
+    return get<PageResponse<PolicyListResponse>>(`/api/v1/policies/popular?${queryParams.toString()}`);
+  },
+
+  // 마감 임박 정책 조회
+  getDeadlineSoonPolicies: (params?: {
+    page?: number;
+    size?: number;
+  }): Promise<ApiResponse<PageResponse<PolicyListResponse>>> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page !== undefined) queryParams.append('page', params.page.toString());
+    if (params?.size !== undefined) queryParams.append('size', params.size.toString());
+    
+    return get<PageResponse<PolicyListResponse>>(`/api/v1/policies/deadline?${queryParams.toString()}`);
+  },
 };

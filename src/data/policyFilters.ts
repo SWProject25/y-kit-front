@@ -1,0 +1,48 @@
+// 정책 필터링용
+export const CATEGORIES = [
+  { id: 1, name: '복지문화', parent_id: null },
+  { id: 2, name: '문화활동', parent_id: 1 },
+  { id: 3, name: '일자리', parent_id: null },
+  { id: 4, name: '취업', parent_id: 3 },
+  { id: 5, name: '창업', parent_id: 3 },
+  { id: 6, name: '참여권리', parent_id: 6 },
+  { id: 7, name: '청년참여', parent_id: 1 },
+  { id: 8, name: '예술인지원', parent_id: 1 },
+  { id: 9, name: '취약계층', parent_id: 1 },
+  { id: 10, name: '금융지원', parent_id: 1 },
+  { id: 11, name: '건강', parent_id: 1 },
+  { id: 12, name: '권익보호', parent_id: 6 },
+  { id: 13, name: '교육', parent_id: null },
+  { id: 14, name: '미래역량강화', parent_id: 13 },
+  { id: 15, name: '교육비지원', parent_id: 13 },
+  { id: 16, name: '주거', parent_id: null },
+  { id: 17, name: '주택', parent_id: 16 },
+  { id: 18, name: '거주지', parent_id: 16 },
+  { id: 19, name: '전월세', parent_id: 16 },
+  { id: 20, name: '주거급여 지원', parent_id: 16 },
+  { id: 21, name: '재직자', parent_id: 3 },
+  { id: 22, name: '기숙사', parent_id: 16 },
+  { id: 23, name: '청년국제교류', parent_id: 6 },
+  { id: 24, name: '정책인프라구축', parent_id: 6 },
+  { id: 25, name: '온라인교육', parent_id: 13 }
+]
+
+export const KEYWORDS = [
+  { id: 1, name: '주거지원' },
+  { id: 2, name: '보조금' },
+  { id: 3, name: '장기미취업청년' },
+  { id: 4, name: '교육지원' },
+  { id: 5, name: '맞춤형상담서비스' },
+  { id: 6, name: '바우처' },
+  { id: 7, name: '육아' },
+  { id: 8, name: '중소기업' },
+  { id: 9, name: '벤처' },
+  { id: 10, name: '인턴' },
+  { id: 11, name: '해외진출' },
+  { id: 12, name: '신용회복' },
+  { id: 13, name: '금리혜택' },
+  { id: 14, name: '청년가장' },
+  { id: 15, name: '출산' },
+  { id: 16, name: '대출' },
+  { id: 17, name: '공공임대주택' }
+]
