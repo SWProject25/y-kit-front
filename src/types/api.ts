@@ -4,14 +4,127 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
+/**
+ * 페이징 응답
+ */
 export interface PageResponse<T> {
-  content: T[];           // 실제 데이터 배열
-  totalElements: number;  // 전체 데이터 개수
-  totalPages: number;     // 전체 페이지 수
-  size: number;           // 페이지당 데이터 개수
-  number: number;         // 현재 페이지 번호 (0부터 시작)
-  first: boolean;         // 첫 페이지 여부
-  last: boolean;          // 마지막 페이지 여부
+  content: T[]
+  page: number          // 현재 페이지 (0부터 시작)
+  size: number          // 페이지 크기
+  totalElements: number // 전체 데이터 수
+  totalPages: number    // 전체 페이지 수
+  last: boolean         // 마지막 페이지 여부
+  first: boolean        // 첫 페이지 여부
+}
+
+
+// ===== 정책 (Policy) =====
+export interface PolicyListResponse {
+  policyId: number;
+  policyNo: string;
+  policyName: string;
+  summary: string;
+  largeCategory: string;
+  mediumCategory: string;
+  isApplicationAvailable: boolean;
+  applicationStartDate: string;
+  applicationEndDate: string;
+  supervisingInstitution: string;
+  minAge: number;
+  maxAge: number;
+  keywords: string[];
+  regions: string[];
+  viewCount: number;
+  bookmarkCount: number;
+  applicationCount: number;
+  createdAt: string;
+}
+
+export interface PolicyDetailResponse {
+  basicInfo: {
+    policyId: number;
+    policyNo: string;
+    isActive: boolean;
+    viewCount: number;
+    bookmarkCount: number;
+    applicationCount: number;
+    createdAt: string;
+    updatedAt: string;
+  };
+  detail: {
+    policyName: string;
+    description: string;
+    supervisingInstitution: string;
+    operatingInstitution: string;
+    approvalStatus: string;
+    provisionMethod: string;
+    supportContent: string;
+    supportScale: string;
+    participationTarget: string;
+    screeningMethod: string;
+    businessPeriodType: string;
+    businessStartDate: string;
+    businessEndDate: string;
+    businessPeriodEtc: string;
+    etcMatters: string;
+    referenceUrl1: string;
+    referenceUrl2: string;
+  };
+  application: {
+    supportScaleLimit: string;
+    firstComeFirstServed: string;
+    applicationPeriodType: string;
+    applicationStartDate: string;
+    applicationEndDate: string;
+    applicationMethod: string;
+    applicationUrl: string;
+  };
+  qualification: {
+    ageLimitYn: string;
+    minAge: number;
+    maxAge: number;
+    incomeConditionType: string;
+    minIncome: number;
+    maxIncome: number;
+    incomeEtc: string;
+    maritalStatus: string;
+    educationLevel: string;
+    employmentStatus: string;
+    majorField: string;
+    specializedRequirement: string;
+    additionalQualification: string;
+  };
+  document: {
+    documentsOriginal: string;
+    documentsParsed: string[];
+  };
+  categories: Array<{
+    categoryId: number;
+    categoryName: string;
+    level: number;
+  }>;
+  keywords: string[];
+  regions: Array<{
+    regionCode: string;
+    regionName: string;
+  }>;
+  aiAnalysis: {
+    summary: string;
+    pros: string;
+    corn: string;
+    generatedAt: string;
+  };
+}
+
+export interface PolicySearchRequest {
+  keyword?: string;
+  categoryId?: number;
+  regionCode?: string;
+  age?: number;
+  isApplicationAvailable?: boolean;
+  page?: number;
+  size?: number;
+  sort?: string;
 }
 
 // ===== 핫딜 관련 타입 =====
