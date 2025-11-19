@@ -104,7 +104,7 @@ function PolicyListPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: COLORS.white }}>
       <Header />
-      <main className="flex-1 w-full pt-18" style={{ backgroundColor: COLORS.white }}>
+      <main className="flex-1 w-full pt-15" style={{ backgroundColor: COLORS.white }}>
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {/* Page Title */}
