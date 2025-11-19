@@ -34,10 +34,18 @@ function PolicyDetailsPage() {
   const [checkedDocuments, setCheckedDocuments] = useState<Set<number>>(new Set())
 
   useEffect(() => {
-    if (id) {
-      fetchPolicyDetail(parseInt(id))
+    if (!id) return
+    
+    const numericId = Number(id)
+    
+    if (Number.isNaN(numericId)) {
+      setError('잘못된 정책 ID 입니다.')
+      setLoading(false)
+      return
     }
-  }, [id])
+    
+    fetchPolicyDetail(numericId)
+}, [id])
 
   const fetchPolicyDetail = async (policyId: number) => {
     setLoading(true)
@@ -325,7 +333,7 @@ function PolicyDetailsPage() {
                       <Separator />
 
                       {/* 지원 내용 */}
-                      <div> ㄴ
+                      <div>
                         <h3 className="font-semibold text-base mb-2" style={{ color: COLORS.navy }}>지원 내용</h3>
                         <p className="text-gray-700 leading-relaxed whitespace-pre-line">{policy.detail.supportContent}</p>
                       </div>
